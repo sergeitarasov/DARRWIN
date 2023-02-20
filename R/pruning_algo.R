@@ -101,8 +101,22 @@ matrix_pruning_simple <- function(brs, Y, neighbor, infQ, dt){
 
 }
 
+#' Likelihood calculation across the tree
+#'
+#' Function to compute the likelihood of ancestral ranges of species using matrix exponentiation
+#' We are going backward in time to compute the likelihood.
+#'
+#' @param brs table summarizing the phylogenetic tree with the branch length and the nodes that are linked(array)
+#' @param Y distribution of the species across the tree with for each species the probability to be present and the probability to be absent(list of arrays)
+#' @param neighbor list of the neighbor of each cell (list of list)
+#' @param infQ transition matrix (matrix)
+#' @param dt
+#'
+#' @return the likelihood at each nodes
+#'
 
-exp_pruning_simple <- function(brs, Y, neighbor, infQ, dt){
+
+exp_pruning_simple <- function(brs, Y, neighbor, infQ){
 
   #We will go backward in the tree and compute the potential distribution of
   #ancestors using matrix exponentiation
@@ -111,21 +125,44 @@ exp_pruning_simple <- function(brs, Y, neighbor, infQ, dt){
     #Select the two species' distributions we are working with
     index <- grep(TRUE, brs$V1==t)
 
-    lay1s1 <- Y[[(brs[[index[1],2]])]]
-    lay2s1 <- Y[[(brs[[index[2],2]])]]
+    br1 <- Y[[(brs[[index[1],2]])]]
+    br2 <- Y[[(brs[[index[2],2]])]]
 
     dt1 <- brs$V3[index[1]]
     dt2 <- brs$V3[index[2]]
 
 
     #for the first state
-    Y[[t]] <- lay1s1%*%t(expm(infQ*dt1)) * lay2s1%*%t(expm(infQ*dt2))
+    Y[[t]] <- br1%*%t(expm(infQ*dt1)) * br2%*%t(expm(infQ*dt2))
 
   }
 
   return(Y)
 
 }
+
+
+
+
+#' Likelihood function for trees
+#'
+#' Function to compute the overall likelihood of the tree
+#'
+#' @param Y distribution of the likelihood of each states across the tree (list of arrays)
+#'
+#'
+#' @return the overall likelihood of the tree
+#'
+
+tree_likelihood <- function(Y){
+
+  Ln <- 0
+
+  return (Ln)
+
+}
+
+
 
 #'Description:
 #'exp_pruning_simple_split(brs, Y, R, Q)
@@ -159,9 +196,9 @@ exp_pruning_simple_split <- function(n, brs, Y, neighbor, infQ, width, height, t
     row_start <- c(1:height)
 
     #For the first branch
-    lay1s1 <- Y[[(brs[[index[1],2]])]]
+    br1 <- Y[[(brs[[index[1],2]])]]
     laybis <- matrix(0, height, width)
-    laybis[true_id] <- lay1s1
+    laybis[true_id] <- br1
 
 
     centers <- center_of_mass(laybis, width, height)
@@ -169,9 +206,9 @@ exp_pruning_simple_split <- function(n, brs, Y, neighbor, infQ, width, height, t
     center[(index[1]*2)] <- centers[2]
 
     #For the second branch
-    lay2s1 <- Y[[(brs[[index[2],2]])]]
+    br2 <- Y[[(brs[[index[2],2]])]]
     laybis <- matrix(0, height, width)
-    laybis[true_id] <- lay2s1
+    laybis[true_id] <- br2
 
     centers <- center_of_mass(laybis, width, height)
     center[(index[2]*2)-1] <- centers[1]
@@ -180,7 +217,7 @@ exp_pruning_simple_split <- function(n, brs, Y, neighbor, infQ, width, height, t
     dt1 <- brs$V3[index[1]]
     dt2 <- brs$V3[index[2]]
 
-    Y[[t]] <- lay1s1%*%t(expm(infQ*dt1)) * lay2s1%*%t(expm(infQ*dt2))
+    Y[[t]] <- br1%*%t(expm(infQ*dt1)) * br2%*%t(expm(infQ*dt2))
 
     if (t == n+1){
       laybis <- matrix(0, height, width)

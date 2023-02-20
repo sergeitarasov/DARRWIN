@@ -1,17 +1,17 @@
 '
 Script developed by: Thomas Merrien
-last update: 19/10/2022
+last update: 07/02/2023
 File name: list_neighbor.R
 '
 
-#'Description:
-#'list.neighbor(map)
+#' Finding neighbors cells in matrix
 #'
-#'Function that for each pixel of the grid list its neighbouring cells
+#' Function that for each pixel of the grid list its neighbouring cells
 #'
-#'Input:
-#'- map: matrix that has the same format as the grid filled with the number of each cells (matrix)
+#' @param map matrix filled with the number of each cells (matrix)
 #'
+#' @return a list of list which returns for each cell the list of the neighbouring cells.
+#' each list ends with 2 zeros to have a minimum length of 2
 
 
 list.neighbor <- function(map){
@@ -79,13 +79,13 @@ list.neighbor <- function(map){
 }
 
 
-#'Description:
-#'list.neighbor2(map)
+#' Finding neighbors cells in matrix second version
 #'
-#'Function that for each pixel of the grid list gives its neighbouring cells according to the pixel edges
+#' Function that for each pixel of the grid list gives its neighbouring cells according to the pixel edges
 #'
-#'Input:
-#'- map: dataframe with the pixel id and edges
+#' @param map dataframe with the pixel id and edges
+#'
+#' @return a list of list which returns for each cell the list of the neighbouring cells.
 #'
 
 list.neighbor2 <- function(map){

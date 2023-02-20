@@ -1,16 +1,30 @@
 '
 Script developed by: Ignacio Quintero adapted to R by Thomas Merrien
-last update: 22/04/2022
+last update: 07/02/2023
 File name: branching_time.R
 '
 
-#'Description:
-#'branching_time(tree)
+#' Tree branching times summary
 #'
-#'Function adapted from package TRIBE from Ignacio Quintero that estimate absolute branching times, with 0 at the present, time going backward
+#' Function adapted from package TRIBE from Ignacio Quintero that summarize the
+#' tree in a matrix and estimate absolute branching times, with 0 at the present.
 #'
-#'Input:
-#'-phylogenetic tree (list)
+#' @param tree a phylogenetic tree (tree)
+#'
+#' @return Returns a matrix with the first column of the table gives the internal
+#' node where the branch start, the second column gives the node or tips where
+#' the branch ends. The third column gives the length of the branch. The fourth
+#' column gives the length to the root from the starting node (actually it is the
+#'  negative length, as it is in fact the date of the branch internal node with
+#'  0 being the present).Finally the fifth column gives the date of the external
+#'  node/tip, 0 being present and the root being -1.(tree_length).
+#'
+#' @export
+#'
+#' @examples
+#' #For a simulated tree with 10 tips
+#' tree <- ape::rcoal(10)
+#' branching_time(tree)
 
 
 
