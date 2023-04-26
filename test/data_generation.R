@@ -9,9 +9,19 @@
 #'
 #'
 
+# FUNCTIONS AND LIBRARIES ------------------------------------------------------
+
+source("R/list_neighbor.R")
+source("R/branching_time.R")
+source("R/reps_per_period.R")
+source("R/pruning_algo.R")
+source("R/ancestral_state_probability.R")
+library(expm)
+
+
 # Grid map parameters ----------------------------------------------------------
 
-w = 3 #width: number of columns
+w = 2 #width: number of columns
 h = 1 #height: number of rows
 landtype = c("land", "water")
 landtype_proportion <- c(0.9, 0.1)
@@ -41,12 +51,14 @@ landscape_generation <- function(h,w,landtype, prop){
   R <- matrix(landtype[1],nrow = h, ncol = w)
   if (length(landtype)>1){
     for (i in 2:length(landtype)){
-      R[sample(R[R==landtype[1]],round(prop[i]*w*h))] <- landtype[i]
+      R[sample(grep(TRUE, R==landtype[1]),round(prop[i]*w*h))] <- landtype[i]
     }
   }
 
   return (R)
 }
+
+R <- landscape_generation(h,w,landtype,landtype_proportion)
 
 # Generation of the indexed map ------------------------------------------------
 map <- matrix(1:(h*w), ncol = w, nrow = h)
@@ -54,38 +66,37 @@ map <- matrix(1:(h*w), ncol = w, nrow = h)
 # Generation of the transition matrix ------------------------------------------
 
 #Area types
-geo_types <- c("land", "water")
 
-K = length(geo_types)
+K = length(landtype)
 Q <- matrix(0, nrow = K, ncol = K)
-colnames(Q) <- geo_types
-rownames(Q) <- geo_types
+colnames(Q) <- landtype
+rownames(Q) <- landtype
 
-Q[1]=0.10
-Q[2]=0.10
-Q[3]=0.10
-Q[4]=0.10
+Q[1]=0.20
+Q[2]=0.000001
+Q[3]=0.0000000001
+Q[4]=0.000001
 
 # Delta time for the analysis --------------------------------------------------
 
 dt <- 0.05
 
 # Generation of the square occupation probability matrices ---------------------
-
-Pi0 <- list(matrix(0.5, nrow = h, ncol = w),matrix(0, nrow = h, ncol = w))
-Pi1 <- list(matrix(0.5, nrow = h, ncol = w),matrix(0, nrow = h, ncol = w))
+#
+#Pi0 <- list(matrix(0.5, nrow = h, ncol = w),matrix(0, nrow = h, ncol = w))
+#Pi1 <- list(matrix(0.5, nrow = h, ncol = w),matrix(0, nrow = h, ncol = w))
 
 # Generation of a random phylogenetic tree -------------------------------------
 
-n <- 3 #number of species
+n <- 10 #number of species
 
 library(ape)
-set.seed(78)
+set.seed(62)
 tree <- rcoal(n,
               rooted = TRUE)
 
 # Create the list of neighbor --------------------------------------------------
-neighbor <- list.neighbor(map) #Function neighbor need to be checked
+neighbor <- list.neighbor(map)
 
 # Get the phylogenetic tree structure ------------------------------------------
 brs <- branching_time(tree)
@@ -124,15 +135,21 @@ matQ <- t(matQ)
 
 # Generation of the biogeographic dataset --------------------------------------
 
-Y <- list(matrix(0, nrow = h, ncol = w),matrix(0, nrow = h, ncol = w))
+Y <- list(rep(0, h * w))
 Y <- rep(Y,tree$Nnode+n)
 
 #creation of simulated biogeographic history
-Y_true <- Y
+Y_true <- list(matrix(0, nrow= h, ncol = w))
+Y_true <- rep(Y_true,tree$Nnode+n)
 
-Y_true[[(n+1)*2-1]][c(361,362,363,364,381,382,383,384)] <- 1
-Y_true[[(n+1)*2]][] <- 1
-Y_true[[(n+1)*2]][c(361,362,363,364,381,382,383,384)] <- 0
+Y_true[[(n+1)]][1] <- 1
+Y_true <- simul_hist_state(Y_true, brs, dt, infQdt, neighbor)
+
+Y_true <- simul_hist(Y_true, brs, dt, infQdt, neighbor, 0.005)
+
+for (i in 1:n){
+  Y[[i]] <- c(Y_true[[i]])
+}
 
 # random version ---------------------------------------------------------------
 
@@ -207,112 +224,3 @@ for (t in (rev(unique(brs$V2)))){
   }
 
 }
-
-
-# V1 ---------------------------------------------------------------------------
-## For species 1 ##
-number = 1
-Y[[(number*2)-1]][c(1,2,3,21,23,41,43,61,62,63)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 2 ##
-number = 2
-Y[[(number*2)-1]][c(81,82)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 3 ##
-number = 3
-Y[[(number*2)-1]][c(41,42,43,63, 44, 64, 45, 65, 61, 62, 82, 83, 84)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 4 ##
-number = 4
-Y[[(number*2)-1]][c(81,82,83,101,102,103,104)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 5 ##
-number = 5
-Y[[(number*2)-1]][c(63,64,83,84,103,104)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-
-# V2 ---------------------------------------------------------------------------
-
-## For species 1 ##
-number = 1
-Y[[(number*2)-1]][c(1,2,3,21,23,41,43,61,62,63)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 2 ##
-number = 2
-Y[[(number*2)-1]][c(81,82)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 3 ##
-number = 3
-Y[[(number*2)-1]][c(41,42,43,63, 44, 64, 45, 65, 61, 62, 82, 83, 84)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 4 ##
-number = 4
-Y[[(number*2)-1]][c(88,108, 89, 109, 110)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 5 ##
-number = 5
-Y[[(number*2)-1]][c(67,87,88,108)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 6 ##
-number = 6
-Y[[(number*2)-1]][c(154,174,155,195,156,176,196)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 7 ##
-number = 7
-Y[[(number*2)-1]][c(135, 155, 156)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 8 ##
-number = 8
-Y[[(number*2)-1]][c(52,53,54,55,56,72,73,74,75,76,92,93,94,95,96)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 9 ##
-number = 9
-Y[[(number*2)-1]][c(14,16,34,35,36)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 10 ##
-number = 10
-Y[[(number*2)-1]][c(33,53,34,54)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-
-# V3 ---------------------------------------------------------------------------
-## For species 1 ##
-number = 1
-Y[[(number*2)-1]][c(1,2,3,21,23,41,43,61,62,63)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 2 ##
-number = 2
-Y[[(number*2)-1]][c(1,2,3,21,23,41,43,61,62,63)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 3 ##
-number = 3
-Y[[(number*2)-1]][c(1,2,3,21,23,41,43,61,62,63)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 4 ##
-number = 4
-Y[[(number*2)-1]][c(1,2,3,21,23,41,43,61,62,63)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-## For species 5 ##
-number = 5
-Y[[(number*2)-1]][c(1,2,3,21,23,41,43,61,62,63)] <- 1
-Y[[(number*2)]] <- 1-Y[[(number*2)-1]]
-
-

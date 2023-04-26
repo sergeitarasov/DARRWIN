@@ -21,59 +21,72 @@ list.neighbor <- function(map){
   r <- length(map)
   h <- dim(map)[1]
   l <- dim(map)[2]
-  row_start <- seq(1, l)
+  row_start <- seq(1, h)
   row_end <- seq(h*(l-1)+1, r)
   col_start <- seq(1,r,by=h)
   col_end <- seq(h,r,by=h)
 
+  if(h>1){
 
-  for (i in 1:r){
-    if (length(grep(TRUE,row_start==i))==0 &
-        length(grep(TRUE,row_end==i))==0 &
-        length(grep(TRUE,col_start==i))==0 &
-        length(grep(TRUE,col_end==i))==0){
-      nb <- c(i-1, i+1, i-h, i+h)
-      nb[nb<=0 | nb>r] <- NA
-      nb <- nb[!is.na(nb)]
-      neighbor[[i]] <- c(nb,0,0)
-    } else {
-      if (length(grep(TRUE,row_end==i))>0){
-        nb <- c(i-1, i+1, i-h)
+    for (i in 1:r){
+      if (length(grep(TRUE,row_start==i))==0 &
+          length(grep(TRUE,row_end==i))==0 &
+          length(grep(TRUE,col_start==i))==0 &
+          length(grep(TRUE,col_end==i))==0){
+        nb <- c(i-1, i+1, i-h, i+h)
         nb[nb<=0 | nb>r] <- NA
-        if (length(grep(TRUE,col_start==i))>0){
-          nb[nb==(i-1)] <- NA
-        }
         nb <- nb[!is.na(nb)]
         neighbor[[i]] <- c(nb,0,0)
       } else {
-        if (length(grep(TRUE,col_end==i))>0){
-
-          nb <- c(i-1, i-h, i+h)
+        if (length(grep(TRUE,row_end==i))>0){
+          nb <- c(i-1, i+1, i-h)
           nb[nb<=0 | nb>r] <- NA
+          if (length(grep(TRUE,col_start==i))>0){
+            nb[nb==(i-1)] <- NA
+          }
           nb <- nb[!is.na(nb)]
           neighbor[[i]] <- c(nb,0,0)
-
         } else {
+          if (length(grep(TRUE,col_end==i))>0){
 
-          if (length(grep(TRUE, row_start==i))>0){
-
-            nb <- c(i-1, i+1, i+h)
+            nb <- c(i-1, i-h, i+h)
             nb[nb<=0 | nb>r] <- NA
             nb <- nb[!is.na(nb)]
             neighbor[[i]] <- c(nb,0,0)
 
-          } else{
+          } else {
+
+            if (length(grep(TRUE, row_start==i))>0){
+
+              nb <- c(i-1, i+1, i+h)
+              nb[nb<=0 | nb>r] <- NA
+              nb <- nb[!is.na(nb)]
+              neighbor[[i]] <- c(nb,0,0)
+
+            } else{
 
               nb <- c(i+1, i-h, i+h)
               nb[nb<=0 | nb>r] <- NA
               nb <- nb[!is.na(nb)]
               neighbor[[i]] <- c(nb,0,0)
 
+            }
           }
         }
       }
     }
+  } else {
+
+    for (i in 1:r){
+
+      nb <- c(i-1, i+1)
+      nb[nb<=0 | nb>r] <- NA
+      nb <- nb[!is.na(nb)]
+      neighbor[[i]] <- c(nb,0,0)
+
+    }
   }
+
 
   return(neighbor)
 }
