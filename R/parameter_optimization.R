@@ -68,9 +68,10 @@ optimization_function_no_rate <- function(lambda){
 
 optimization_function_rate <- function(lambda){
 
+  nb_branch <- length(brs$V1)
+  nb_param <- length(lambda)
 
-
-  Q <- matrix(lambda, length(envt_type), length(envt_type))
+  Q <- matrix(lambda[1:(nb_param-nb_branch-2)], length(envt_type), length(envt_type))
   colnames(Q) <- envt_type
   rownames(Q) <- envt_type
 
@@ -86,7 +87,7 @@ optimization_function_rate <- function(lambda){
     matQ[i,i] <- -sum(matQ[i,])
   }
 
-  Lik<-tree_likelihood_only(Y,brs,matQ, m=rep(1,length(Y)), alpha = 1, beta = 1)
+  Lik<-tree_likelihood_only(Y,brs,matQ, m=lambda[(nb_param-nb_branch-1):(nb_param+nb_branch-2)], alpha = lambda[-2], beta = lambda[-1])
 
   return(Lik)
 

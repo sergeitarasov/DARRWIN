@@ -107,36 +107,82 @@ DARRWIN <- function(tree, sp_dist, grid, directory, envt_type, lbr=0, ubr=100, b
   #These 2 steps are done for 4 different starts and we then select the best one
   #based on the likelihood
 
-  para <- list()
-  Like <- c()
+  para <- list() #rate of transition of one envt to another of the optimized solutions
+  Like <- c() #Log likelihood of of the optimized solutions
 
-  for (q in 1:10){
+  nb_branch <- length(brs$V1)
+  nb_Rrates <- length(envt_type)^2
 
-    x0 <- runif(length(envt_type)^2, lb, ub)
+  if(branch_rate_multiplier==TRUE){
 
-    opts <- list("algorithm" = "NLOPT_GN_DIRECT_L_RAND",
-                 "xtol_rel" = 1e-2,
-                 maxeval = 1000)
-
-    params <- nloptr(x0 = x0,
-                     lb = rep(lbr, length(envt_type)^2),
-                     ub = rep(ubr, length(envt_type)^2),
-                     eval_f = optimization_function,
-                     opts = opts)
+    brm <- list() #branch rate multipliers of the optimized solutions
+    alpha_s <- c() #alpha parameter of the gamma distribution of the optimized solution
+    beta_s <- c() #beta parameter of the gamma distribution of the optimized solution
 
 
-    opts <- list("algorithm" = "NLOPT_GN_DIRECT_L_RAND",
-                 "xtol_rel" = 1e-5,
-                 maxeval = 1000)
+    for (q in 1:10){
 
-    params <- nloptr(x0 = params$solution,
-                     lb = rep(lb, length(envt_type)^2),
-                     ub = rep(ub, length(envt_type)^2),
-                     eval_f = optimization_function,
-                     opts = opts)
+      x0 <- c(runif(nb_Rrates, lb, ub), runif(nb_branch, 1e-5, 20), runif(2,0,5))
 
-    para[[q]] <- params$solution
-    Like[q] <- params$objective
+      opts <- list("algorithm" = "NLOPT_GN_DIRECT_L_RAND",
+                   "xtol_rel" = 1e-2,
+                   maxeval = 1000)
+
+      params <- nloptr(x0 = x0,
+                       lb = c(rep(lbr, nb_Rrates), rep(0,nb_branch+2)),
+                       ub = c(rep(ubr, nb_Rrates), rep(20,nb_branch+2)),
+                       eval_f = optimization_function_rate(),
+                       opts = opts)
+
+      opts <- list("algorithm" = "NLOPT_GN_DIRECT_L_RAND",
+                   "xtol_rel" = 1e-5,
+                   maxeval = 1000)
+
+      params <- nloptr(x0 = params$solution,
+                       lb = c(rep(lbr, nb_Rrates), rep(0,nb_branch+2)),
+                       ub = c(rep(ubr, nb_Rrates), rep(20,nb_branch+2)),
+                       eval_f = optimization_function_rate(),
+                       opts = opts)
+
+      para[[q]] <- params$solution[1:nb_Rrates]
+      brm[[q]] <- params$solution[nb_Rrates+1:nbRrates+nb_branch]
+      alpha_s[q] <- params$solution[-2]
+      beta_s[q] <- params$solution[-1]
+      Like[q] <- params$objective
+
+    }
+
+  } else {
+
+    for (q in 1:10){
+
+      x0 <- runif(nb_Rrates, lb, ub)
+
+      opts <- list("algorithm" = "NLOPT_GN_DIRECT_L_RAND",
+                   "xtol_rel" = 1e-2,
+                   maxeval = 1000)
+
+      params <- nloptr(x0 = x0,
+                       lb = rep(lbr, nb_Rrates),
+                       ub = rep(ubr, nb_Rrates),
+                       eval_f = optimization_function_no_rate(),
+                       opts = opts)
+
+
+      opts <- list("algorithm" = "NLOPT_GN_DIRECT_L_RAND",
+                   "xtol_rel" = 1e-5,
+                   maxeval = 1000)
+
+      params <- nloptr(x0 = params$solution,
+                       lb = rep(lb, nb_Rrates),
+                       ub = rep(ub, nb_Rrates),
+                       eval_f = optimization_function_no_rate(),
+                       opts = opts)
+
+      para[[q]] <- params$solution
+      Like[q] <- params$objective
+
+    }
 
   }
 
@@ -145,11 +191,9 @@ DARRWIN <- function(tree, sp_dist, grid, directory, envt_type, lbr=0, ubr=100, b
 
   #Step 7: Construction of the Q matrix
 
-  Q <- matrix(para[select], nrow = length(envt_type), ncol = length(envt_type))
+  Q <- matrix(para[[select]][1:nb_Rrates], nrow = length(envt_type), ncol = length(envt_type))
   colnames(Q) <- envt_type
   rownames(Q) <- envt_type
-
-  print(Q)
 
   matQ <- matrix(0, nrow=h*w, ncol = h*w)
 
@@ -166,7 +210,16 @@ DARRWIN <- function(tree, sp_dist, grid, directory, envt_type, lbr=0, ubr=100, b
   matQ <- t(matQ)
 
   #Step 8: Running Likelihood analysis ------------------------------------------
-  Darrwin_LNL <- tree_likelihood(Y, brs, matQ, rep(1,length(Y)))
+
+  if (branch_rate_multiplier==TRUE){
+
+    Darrwin_LNL <- tree_likelihood_gamma(y, brs, matQ, brm[[q]], alpha_s[q], beta_s[q])
+
+  } else {
+
+    Darrwin_LNL <- tree_likelihood(Y, brs, matQ, rep(1,length(Y)))
+
+  }
 
   #Step 9: Running marginal reconstruction analysis -----------------------------
   reconstruction <- ancestral_state_probability(n, brs, neighbor, Darrwin_LNL$Y, matQ, Darrwin_LNL$Delta, init_proba = "equiproba")

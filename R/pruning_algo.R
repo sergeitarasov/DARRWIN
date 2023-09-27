@@ -77,7 +77,7 @@ node_likelihood <- function(Ln_br1, Ln_br2){
 #' @param Y Probability of presence in each cell across the tree for each species (list of arrays)
 #' @param brs table summarizing the phylogenetic tree with the branch length and the nodes that are linked(array)
 #' @param Q transition matrix between the states (matrix)
-#' @param Delta branch specific rates vector in the same order as the brs file (array)
+#' @param m branch specific rates vector in the same order as the brs file (array)
 #'
 #' @return the likelihood at the node as a list of the likelihood of each given states (list of arrays)
 #'
@@ -100,8 +100,8 @@ tree_likelihood <- function(Y,brs,Q, Delta){
     #Select the two species' distributions we are working with
     index <- grep(TRUE, brs$V1==t)
 
-    Ln_br1 <- branch_likelihood(br = Y[[(brs[[index[1],2]])]], dt = brs$V3[index[1]], Q = Q, delta = Delta[index[1]])
-    Ln_br2 <- branch_likelihood(br = Y[[(brs[[index[2],2]])]], dt = brs$V3[index[2]], Q = Q, delta = Delta[index[2]])
+    Ln_br1 <- branch_likelihood(br = Y[[(brs[[index[1],2]])]], dt = brs$V3[index[1]], Q = Q, delta = m[index[1]])
+    Ln_br2 <- branch_likelihood(br = Y[[(brs[[index[2],2]])]], dt = brs$V3[index[2]], Q = Q, delta = m[index[2]])
 
     Y[[t]] <- node_likelihood(Ln_br1 = Ln_br1, Ln_br2 = Ln_br2)
 
@@ -118,7 +118,7 @@ tree_likelihood <- function(Y,brs,Q, Delta){
 
   LnL <- log(prod(Y[[t]]*(1/length(Y[[t]])))) + sum(log(Lm))
 
-  return(list (Y = Y, Lm = Lm , LnL = LnL, scaling_time = scaling_time, Delta = Delta))
+  return(list (Y = Y, Lm = Lm , LnL = LnL, scaling_time = scaling_time, Delta = m))
 
 }
 
